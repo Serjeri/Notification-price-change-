@@ -1,40 +1,41 @@
-import requests
+from aiogram import Bot, Dispatcher, executor, types
+from aiogram.dispatcher.filters import Text
+from aiogram.utils.markdown import hbold, hlink
+from ConfigFile.config import URL,TOKEN
+from product import get_product
 import json
 
+bot = Bot(token=TOKEN, parse_mode=types.ParseMode.HTML)
+dispatcher = Dispatcher(bot)
 
-def get_product(url):
-    response = requests.Session().get(url=url)
 
-    data = response.json()
-    padination = data.get("pagination").get("totalPages")
+@dispatcher.message_handler(commands="start")
+async def start(message: types.Message):
+    start_buttons = ["Ноутбуки","Телефоны"]
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    keyboard.add(*start_buttons)
 
-    result_product = []
-    for page in range(0, padination + 1):
-        url = f"https://api.tehnomanija.rs/occ/v2/tehnomanija/products/search?fields=products(discountAmount(DEFAULT)%2CdiscountRate%2CbasePrice(DEFAULT)%2Ccode%2Cname%2Csummary%2Cprice(FULL)%2Curl%2Cimages(DEFAULT)%2Cstock(FULL)%2CaverageRating%2CvariantOptions%2Ccategories%2Cbrand%2CcategoryNames%2Cstickers)%2Cfacets%2Cbreadcrumbs%2Cpagination(DEFAULT)%2Csorts(DEFAULT)%2CfreeTextSearch%2CcurrentQuery%2CsuggestedCategories(DEFAULT)%2CkeywordRedirectUrl&query=%3Arelevance%3AallCategories%3A100304&currentPage={page}&pageSize=12&lang=sr_RS&curr=RSD"
-        response = requests.Session().get(url=url)
+    await message.answer("Hello", reply_markup=keyboard)
 
-        data = response.json()
-        products = data.get("products")
 
-        for product in products:
-            price = product.get("price").get("formattedValue")
+@dispatcher.message_handler(Text(equals="Ноутбуки"))
+async def get_discount(message: types.Message):
+    await message.answer("Please waiting...")
 
-            result_product.append(
-                {
-                    "name": product.get('name'),
-                    "url": f'https://www.tehnomanija.rs{product.get("url")}',
-                    "price": price
-                }
-            )
+    get_product(url=URL)
 
-        print(f"{page}/{padination}")
+    with open("ProductResult/product.json", encoding='utf-8') as file:
+        data = json.load(file)
 
-    with open("ResultProduct/product.json", "w", encoding='utf-8') as file:
-        json.dump(response.json(), file, indent=4, ensure_ascii=False)
+    for item in data:
+        card = f"{hlink(item.get('name'), item.get('url'))}\n"\
+            f"{hbold('Цена: ')} {item.get('price')}\n"\
+
+        await message.answer(card)
 
 
 def main():
-    get_product(url=""" https://api.tehnomanija.rs/occ/v2/tehnomanija/products/search?fields=products(discountAmount(DEFAULT)%2CdiscountRate%2CbasePrice(DEFAULT)%2Ccode%2Cname%2Csummary%2Cprice(FULL)%2Curl%2Cimages(DEFAULT)%2Cstock(FULL)%2CaverageRating%2CvariantOptions%2Ccategories%2Cbrand%2CcategoryNames%2Cstickers)%2Cfacets%2Cbreadcrumbs%2Cpagination(DEFAULT)%2Csorts(DEFAULT)%2CfreeTextSearch%2CcurrentQuery%2CsuggestedCategories(DEFAULT)%2CkeywordRedirectUrl&query=%3Arelevance%3AallCategories%3A100304&pageSize=12&lang=sr_RS&curr=RSD """)
+    executor.start_polling(dispatcher)
 
 
 if __name__ == "__main__":
