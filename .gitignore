@@ -11,3 +11,4 @@ venv.bak/
 product.json
 __pycache__
 ConfigFile
+READ.md
