@@ -1,34 +1,34 @@
-from ConfigFile.config import URLCATEGORIES, URLPAGESIZE
+from DataAsses.DataBase import Database
 import requests
-import json
 
 
-def get_product(url):
+db = Database()
+
+
+def get_product(url: str, user: int):
     response = requests.Session().get(url=url)
 
-    data = response.json()
-    padination = data.get("pagination").get("totalPages")
-
     result_product = []
-    for page in range(0, padination + 1):
-        url = f"{URLCATEGORIES}currentPage={page}{URLPAGESIZE}"
-        response = requests.Session().get(url=url)
+    data = response.json()
+    products = data.get("products")
 
-        data = response.json()
-        products = data.get("products")
+    for product in products:
+        old_price = product.get("basePrice").get(
+            "formattedValue").replace('  RSD', '')
+        new_price = product.get("price").get(
+            "formattedValue").replace('  RSD', '')
 
-        for product in products:
-            price = product.get("price").get("formattedValue")
+        discount = round(
+            (float(old_price) - float(new_price)) / float(old_price) * 100)
 
-            result_product.append(
-                {
-                    "name": product.get('name'),
-                    "url": f'https://www.tehnomanija.rs{product.get("url")}',
-                    "price": price
-                }
-            )
+        result_product.append(
+            {
+                "name": product.get('name'),
+                "link": f'https://www.tehnomanija.rs{product.get("url")}',
+                "old_price": old_price,
+                "new_price": new_price,
+                "discount": discount
+            }
+        )
 
-        print(f"{page}/{padination}")
-
-    with open("ProductResult/product.json", "w", encoding='utf-8') as file:
-        json.dump(result_product, file, indent=4, ensure_ascii=False)
+    db.add_product(result_product, user)

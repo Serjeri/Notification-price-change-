@@ -1,35 +1,44 @@
+import json
+from DataAsses.DataBase import Database
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.dispatcher.filters import Text
 from aiogram.utils.markdown import hbold, hlink
-from ConfigFile.config import URL,TOKEN
+from ConfigFile.urlConfig import URL, TOKEN
 from product import get_product
-import json
 
 bot = Bot(token=TOKEN, parse_mode=types.ParseMode.HTML)
 dispatcher = Dispatcher(bot)
+db = Database()
 
 
 @dispatcher.message_handler(commands="start")
 async def start(message: types.Message):
-    start_buttons = ["Ноутбуки","Телефоны"]
+    user_id = [message.chat.id][0]
+
+    if db.search_user(user_id) is None:
+        db.add_user(user_id)
+
+    start_buttons = ["Смотрим цену ноутбуков Apple"]
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     keyboard.add(*start_buttons)
 
     await message.answer("Hello", reply_markup=keyboard)
 
 
-@dispatcher.message_handler(Text(equals="Ноутбуки"))
+@dispatcher.message_handler(Text(equals="Смотрим цену ноутбуков Apple"))
 async def get_discount(message: types.Message):
+    user_id = [message.chat.id][0]
     await message.answer("Please waiting...")
+    
+    get_product(URL, user_id)
 
-    get_product(url=URL)
-
-    with open("ProductResult/product.json", encoding='utf-8') as file:
-        data = json.load(file)
+    data = db.show_product_user(user_id)
 
     for item in data:
-        card = f"{hlink(item.get('name'), item.get('url'))}\n"\
-            f"{hbold('Цена: ')} {item.get('price')}\n"\
+        card = f"{hlink(item[1], item[2])}\n"\
+            f"{hbold('Старая цена: ')} {item[3]} RSD\n"\
+            f"{hbold('Новая Цена: ')} {item[4]} RSD\n"\
+            f"{hbold('Скидка: ')} -{item[5]}% \n"\
 
         await message.answer(card)
 

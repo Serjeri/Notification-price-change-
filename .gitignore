@@ -12,3 +12,4 @@ product.json
 __pycache__
 ConfigFile
 READ.md
+StoreUsers.db
