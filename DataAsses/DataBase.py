@@ -8,48 +8,33 @@ class Database:
         self.cursor = self.db.cursor()
         self.db.commit()
 
-    def add_user(self, user_id: str):
+    def add_product(self, products: dict, user: int):
         with self.db:
             self.cursor.execute(
-                """ INSERT INTO users (user) VALUES(?) """, (user_id,))
+                """ INSERT INTO users (user,producTitle,link,idProduct,price) VALUES(?,?,?,?,?) """,
+                (user, products['title'], products['link'], products['id_product'],
+                 products['price'],))
             self.db.commit()
-
-            user_fk = self.cursor.execute(
-                """ SELECT id, user FROM users WHERE user = ? """, (user_id,)).fetchall()[0]
-
-            self.cursor.execute(
-                """ INSERT INTO product (FK_users) VALUES(?) """, (user_fk[0],))
-            self.db.commit()
-
-    def search_user(self, user_id: str):
-        with self.db:
-            user = self.cursor.execute(
-                """ SELECT user FROM users WHERE user = ? """, (user_id,))
-            return user.fetchone()
-
-    def add_product(self, products: list, user: int):
-        with self.db:
-            # TODO подумать над ссылкой магазина
-            user_link_shop = self.cursor.execute(
-                """ SELECT distinct product.link_shop FROM product
-                    JOIN users ON product.FK_users = users.id
-                    WHERE user = ? """, (user,)).fetchall()[0]
-
-            if URL != user_link_shop[0]:
-                user_fk = self.cursor.execute(
-                    """ SELECT id, user FROM users WHERE user = ? """, (user,)).fetchall()[0]
-
-                for product in products:
-                    self.cursor.execute(
-                        """ INSERT INTO product (product_name,link_product,old_price,
-                        new_price,discount,FK_users) VALUES(?,?,?,?,?,?) """,
-                        (product['name'], product['link'], product['old_price'],
-                         product['new_price'], product['discount'], user_fk[0],))
-                    self.db.commit()
 
     def show_product_user(self, user: int):
         with self.db:
-            return self.cursor.execute(""" SELECT users.user,product.product_name,
-            product.link_product,product.old_price,product.new_price,product.discount FROM product
-            JOIN users ON product.FK_users = users.id
+            return self.cursor.execute(""" SELECT producTitle,link,price FROM users
             WHERE user = ? """, (user,)).fetchall()
+
+    def id_product(self, id):
+        with self.db:
+            id_product = self.cursor.execute(
+                """ SELECT idProduct FROM users
+                    WHERE idProduct = ? """, (id,)).fetchone()
+
+            return id_product
+
+    def price_updates(self, products: dict):
+        with self.db:
+            pass
+
+    def price_change(self, user: int, id_product: str):
+        with self.db:
+            id_product = self.cursor.execute(
+                """ SELECT price, idProduct, user
+                FROM users WHERE idProduct = ? and user = ?""", (id_product,user,)).fetchall()

@@ -1,46 +1,59 @@
-import json
 from DataAsses.DataBase import Database
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.dispatcher.filters import Text
 from aiogram.utils.markdown import hbold, hlink
 from ConfigFile.urlConfig import URL, TOKEN
-from product import get_product
+from product import Product
+import time
+import asyncio
+import aioschedule
 
 bot = Bot(token=TOKEN, parse_mode=types.ParseMode.HTML)
 dispatcher = Dispatcher(bot)
 db = Database()
+product = Product()
 
 
 @dispatcher.message_handler(commands="start")
 async def start(message: types.Message):
-    user_id = [message.chat.id][0]
-
-    if db.search_user(user_id) is None:
-        db.add_user(user_id)
-
-    start_buttons = ["Смотрим цену ноутбуков Apple"]
+    start_buttons = [
+        "Смотрим цену ноутбука и подписаться на уведомления"]
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     keyboard.add(*start_buttons)
 
     await message.answer("Hello", reply_markup=keyboard)
 
 
-@dispatcher.message_handler(Text(equals="Смотрим цену ноутбуков Apple"))
+@dispatcher.message_handler(Text(equals="Смотрим цену ноутбука и подписаться на уведомления"))
 async def get_discount(message: types.Message):
     user_id = [message.chat.id][0]
     await message.answer("Please waiting...")
-    
-    get_product(URL, user_id)
+
+    product.get_product(URL, user_id)
 
     data = db.show_product_user(user_id)
 
     for item in data:
-        card = f"{hlink(item[1], item[2])}\n"\
-            f"{hbold('Старая цена: ')} {item[3]} RSD\n"\
-            f"{hbold('Новая Цена: ')} {item[4]} RSD\n"\
-            f"{hbold('Скидка: ')} -{item[5]}% \n"\
+        if product.result_product['price'] == item[2]:
+            card = f"{hlink(item[0], item[1])}\n"\
+                f"{hbold('Цена: ')} {item[2]} RSD\n"\
 
-        await message.answer(card)
+            await message.answer(card)
+        else:
+            for item in data:
+                card = f"{hlink(item[0], item[1])}\n"\
+                    f"{hbold('Цена изминилась: ')} {item[2]} RSD\n"\
+
+                await message.answer(card)
+    await timer("Смотрим цену ноутбука и подписаться на уведомления")
+
+
+async def timer(message):
+    aioschedule.every(5).seconds.do(
+        get_discount, message)
+    while True:
+        await aioschedule.run_pending()
+        await asyncio.sleep(10)
 
 
 def main():
