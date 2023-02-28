@@ -35,5 +35,5 @@ def get_product(url: str, user: int):
 
     if db.id_product(id_product) is None or db.get_user(user) is None:
         db.add_product(result_product, user)
-    elif result_product["price"] < db.price_change(user, id_product):
-        db.update_price(result_product["price"], user)
+
+    return {'price': result_product["price"], 'id': id_product}

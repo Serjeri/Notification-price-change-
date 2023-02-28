@@ -16,7 +16,7 @@ class Database:
                  products['price'],))
             self.db.commit()
 
-    def show_product_user(self, user: int):
+    def get_product_user(self, user: int):
         with self.db:
             return self.cursor.execute(""" SELECT producTitle,link,price FROM users
             WHERE user = ? """, (user,)).fetchall()
