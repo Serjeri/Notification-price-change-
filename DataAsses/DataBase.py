@@ -21,20 +21,12 @@ class Database:
             return self.cursor.execute(""" SELECT producTitle,link,price FROM users
             WHERE user = ? """, (user,)).fetchall()
 
-    def id_product(self, id):
-        with self.db:
-            id_product = self.cursor.execute(
-                """ SELECT idProduct FROM users
-                    WHERE idProduct = ? """, (id,)).fetchone()
-
-            return id_product
-
-    def price_change(self, user: int, id_product: str):
+    def price_change(self, user: int):
         with self.db:
             price = self.cursor.execute(
-                """ SELECT price, idProduct, user
-                FROM users WHERE idProduct = ? and user = ?""", (id_product, user,)).fetchall()[0]
-            return price[0]
+                """ SELECT price, user
+                FROM users WHERE user = ?""", ( user,)).fetchone()
+            return price
 
     def get_link_user(self, link: str):
         with self.db:
